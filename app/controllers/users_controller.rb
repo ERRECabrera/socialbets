@@ -8,7 +8,7 @@ class UsersController < ApplicationController
   def create
     user = User.new(user_params)
     if user.save
-      render status: :created, json: { notice: 'User created'}
+      redirect_to login_path(params)
     else
       render status: :unprocessable_entity, :json => { error: "unprocessable"}
     end

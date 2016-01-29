@@ -4,12 +4,13 @@ Rails.application.routes.draw do
   
   #API to admin users
   get '/user/form' => 'users#form'
-  post '/user/create' => 'users#create'
+  match '/user/create' => 'users#create', via: [:get, :post] 
 
   #API to admin sessions
   post '/control' => 'sessions#control'
-  post '/login' => 'sessions#create'
-  delete '/logout' => 'sessions#destroy'
+  match '/login' => 'sessions#create', via: [:get, :post]
+  #delete '/logout' => 'sessions#destroy'
+  get '/logout' => 'sessions#destroy'
 
   # The priority is based upon order of creation: first created -> highest priority.
   # See how all your routes lay out with "rake routes".
