@@ -1,10 +1,12 @@
 class UsersController < ApplicationController
 
+  # /user/form
   def form
     @user = User.new
     render 'form', layout: 'clean'
   end
 
+  # /user/create
   def create
     user = User.new(user_params)
     if user.save
