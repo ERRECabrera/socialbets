@@ -1,30 +1,107 @@
 class Faker_games
 
-  attr_reader :euro, :quini, :primi, :lot_nav, :gordo
+  attr_reader :euro, :quini, :primi, :loto, :gordo
 
   def initialize
-    @euro = nil
+    @agent = Mechanize.new
+    @euro = euromillones
     @quini = nil
     @primi = nil
-    @lot_nav = nil
+    @loto = nil
     @gordo = nil
-    @agent = Mechanize.new
   end
 
-private
+#private
 #aunque casi toda la info está disponible en la misma url(actualmente),
 #es preferible para el mantenimiento separarla en distintos métodos y llamadas
 
-#working in connect with ssl certification. problem is not a client ca_certificate
+#working in connect with ssl certification. problem: is not a client ca_certificate
 #ex +'/BEGIN CERTIFICATE/,/END CERTIFICATE/p' <(echo | openssl s_client -showcerts -connect juegos.loteriasyapuestas.es:443) -scq > file.crt
 
-  def euromillones
-    page_logo = agent.get('http://www.selae.es/es/web-corporativa/comunicacion/identidad-corporativa')
-    logo_src = page_logo.search("a[title='Euromillones']")[0].attr('href')
-    page_info = agent.get('http://www.loteriasyapuestas.es/es/euromillones')
-    jackpot_srt = page.search("div.bote")[0].text.delete("\t")
-    #date_game = sorteos martes y jueves
-    #hora_límite 
+  def euromillones   
+    page_logo = @agent.get('http://www.selae.es/es/web-corporativa/comunicacion/identidad-corporativa')
+    logo_src = 'http://www.selae.es' + page_logo.search("a[title='Euromillones']")[0].attr('href')
+    page_info = @agent.get('http://www.loteriasyapuestas.es/es/euromillones')
+    jackpot_srt = page_info.search("div.bote")[0].text.delete("\t")
+    date_game = set_date_game('euromillones')
+    date_game_str = date_to_string(date_game,'es')
+    time_left = set_time_left(date_game,'euromillones')
+    binding.pry
+  end
+
+  def set_time_left(date,type)
+    case type
+    when 'euromillones'
+      time_game = Time.utc(date.year, date.mon, date.mday, 19, 30)
+      time_remaining = calculate_months_weeks_days_hours_or_minutes_remaining(time_game)
+    end
+    return time_remaining
+  end
+
+  def calculate_months_weeks_days_hours_or_minutes_remaining(time_game)
+    time_fixed = time_game.getlocal
+    months_remaining = time_fixed.mon - Time.now.mon
+    if months_remaining == 0
+      days_remaining = time_fixed.day - Time.now.day
+      if days_remaining > 7
+        weeks_remaining = days_remaining/7
+        return {:weeks => weeks_remaining}
+      elsif days_remaining == 0
+        hours_remaining = time_fixed.hour - Time.now.hour
+        if hours_remaining == 0
+          mins_remaining = time_fixed.min - Time.now.min
+          return {:mins => mins_remaining}
+        else
+          return {:hours => hours_remaining}
+        end
+      else
+        return {:days => days_remaining}
+      end
+    else
+      return {:months => months_remaining}
+    end
+  end
+
+  def set_date_game(type,fix_num=0)
+    week_day = Time.now.wday + fix_num
+    case type
+    when 'euromillones'
+      if week_day <= 2 || week_day > 5 #0126
+        date = calculate_date_game(week_day-fix_num,2,5) #se resta fix_num para evitar cálculo erroneo
+      elsif week_day > 2 && week_day <= 5 #345
+        date = calculate_date_game(week_day-fix_num,5)
+      end
+      #el fix_num y esto soluciona los casos en q estamos en el mismo día del game pero ha pasado el time_game
+      date = Time.now > Time.utc(date.year, date.mon, date.mday, 19, 30).getlocal ? set_date_game(type,1) : date
+    end
+    return date
+  end
+
+  def calculate_date_game(week_day,limit_below=nil,limit_above=nil)
+    days_to_sum = limit_below ? limit_below - week_day : 0
+    days_to_subtrac = (limit_above && week_day > limit_above) ? week_day - limit_above : 0
+    date_game = Date.today + days_to_sum - days_to_subtrac
+    return date_game
+  end
+
+  def date_to_string(date,lang)
+    day_names = {
+      :en => Date::DAYNAMES,
+      :es => %w{Domingo Lunes Martes Miércoles Jueves Viernes}
+    }
+    month_names = {
+      :en => Date::MONTHNAMES,
+      :es => %w{nil Enero Febrero Marzo Abril Mayo Junio Julio Agosto Septiembre Octubre Noviembre Diciembre}
+    }
+    date_str = "#{day_names[lang.to_sym][date.wday]}, "
+    case lang
+    when 'es'
+      date_str += "#{date.mday} de #{month_names[lang.to_sym][date.mon+1]} de"
+    when 'en'
+      date_str += "#{month_names[lang.to_sym][date.mon+1]} #{date.mday}rd,"
+    end
+    date_str += " #{date.year}"
+    return date_str
   end
 
 end
@@ -63,180 +140,6 @@ objects_attr = {
       "ticket_number": 1203,
       "amount": 0, #implementar websocket o llamadas ajax cada cierto tiempo
       "draw_id": 2
-    }
-  ]
-}
-
-{ "result": true, #if objects > 0 
-  "objects":[ #select availabre == true
-    { "id": 12,
-      "draw_name": "Euromillones", #draw_name.es or en..
-      "jackpot": "15.000.000 €",
-      "prize_distributed": " €",
-      "date_time": "14/08/2015", #change to Date_object? this is Date.current?
-      "round": "", #possible inheritance
-      "priority": "1", #order_by priority
-      "available": true,
-      "game": { #info game static
-        "id": 1,
-        "game_name": "Euromillions",
-        "minimum_bet": "2.0 €", #change to_f
-        "hours_before_closing_draw": "5", #what is the use??
-        "created_at": "24/09/2014", #what is the use??
-        "updated_at": "24/09/2014" #what is the use??
-        },
-      "week": "", #possible inheritance, what is the use??
-      "tuesday_active": true, #what is the use??
-      "original_draw_date": "14/08/2015", #this is Date created_at this_object draw
-      "time_left": "0 minutos" #method to return Date.objecto format string?
-    },
-    { "id": 7,
-      "draw_name": "Quiniela",
-      "jackpot": "0,00 €",
-      "prize_distributed": "0,00 €",
-      "date_time": "09/08/2015",
-      "round": "1", #jornada?
-      "priority": "2",
-      "available": true,
-      "game": {
-        "id": 4,
-        "game_name": "Quiniela",
-        "minimum_bet": "0.75 €",
-        "hours_before_closing_draw": "4",
-        "created_at": "02/12/2014",
-        "updated_at": "05/08/2015"
-        },
-      "week": "",
-      "tuesday_active": false,
-      "original_draw_date": "09/08/2015",
-      "time_left": "0 minutos",
-      "matches": [
-        { "id": 1,
-          "match_1": "Athletic-Barcelona",
-          "match_2": "Real Madrid-Atletico Madrid",
-          "match_3": "Santander-Albacete",
-          "match_4": "Valencia-Sevilla",
-          "match_5": "Villarreal-Espanyol",
-          "match_6": "Coruña-Betis",
-          "match_7": "Eibar-Elche",
-          "match_8": "Córdoba-Levante",
-          "match_9": "Real Sociedad-Málaga",
-          "match_10": "Celta-Sporting",
-          "match_11": "Alavés-Cádiz",
-          "match_12": "Oviedo-Zaragoza",
-          "match_13": "Murcia-Jaén",
-          "match_14": "Almería-Granada",
-          "match_15": "Alcorcón-Leganés",
-          "draw_id": 7, #possible data-id_js
-          "created_at": "2015-07-06T20:30:45.649+02:00",
-          "updated_at": "2015-07-06T20:30:45.649+02:00"
-        }
-      ]},
-    { "id": 13,
-      "draw_name": "Primitiva",
-      "jackpot": "10.000.000 €",
-      "prize_distributed": "10.000.000 €",
-      "date_time": "15/08/2015",
-      "round": "",
-      "priority": "2",
-      "available": true,
-      "game": {
-        "id": 3,
-        "game_name": "Primitiva",
-        "minimum_bet": "1.0 €",
-        "hours_before_closing_draw": "5",
-        "created_at": "07/10/2014",
-        "updated_at": "04/03/2015"
-      },
-      "week": "",
-      "tuesday_active": true,
-      "original_draw_date": "15/08/2015",
-      "time_left": "0 minutos"
-    },
-    { "id": 2,
-      "draw_name": "Lotería Navidad",
-      "jackpot": "10.000.000 €",
-      "prize_distributed": "10.000.000 €",
-      "date_time": "22/11/2015",
-      "round": "",
-      "priority": "3",
-      "available": true,
-      "game": {
-        "id": 2,
-        "game_name": "Lottery",
-        "minimum_bet": "20.0 €",
-        "hours_before_closing_draw": "10",
-        "created_at": "07/10/2014",
-        "updated_at": "07/10/2014"
-      },
-      "week": "",
-      "tuesday_active": false,
-      "original_draw_date": "22/11/2015",
-      "time_left": "0 minutos",
-      "numbers": [ #select where amount > 0
-        { "id": 3,
-          "ticket_number": 1203,
-          "amount": 0,
-          "draw_id": 2,
-          "created_at": "2015-09-03T16:23:49.336+02:00",
-          "updated_at": "2015-11-10T11:03:54.793+01:00"
-        },
-        { "id": 4,
-          "ticket_number": 86428,
-          "amount": 3,
-          "draw_id": 2,
-          "created_at": "2015-09-03T16:38:21.471+02:00",
-          "updated_at": "2015-11-12T19:54:42.652+01:00"
-        },
-        { "id": 5,
-          "ticket_number": 56823,
-          "amount": 3,
-          "draw_id": 2,
-          "created_at": "2015-09-10T16:29:29.331+02:00",
-          "updated_at": "2015-11-12T11:27:40.803+01:00"
-        },
-        { "id": 6,
-          "ticket_number": 92034,
-          "amount": 4,
-          "draw_id": 2,
-          "created_at": "2015-09-10T16:29:46.098+02:00",
-          "updated_at": "2015-11-12T19:48:03.900+01:00"
-        },
-        { "id": 7,
-          "ticket_number": 75602,
-          "amount": 0,
-          "draw_id": 2,
-          "created_at": "2015-09-10T16:30:04.250+02:00",
-          "updated_at": "2015-11-11T19:09:24.979+01:00"
-        },
-        { "id": 8,
-          "ticket_number": 270,
-          "amount": 5,
-          "draw_id": 2,
-          "created_at": "2015-09-10T16:30:21.786+02:00",
-          "updated_at": "2015-09-17T17:24:28.094+02:00"
-        }
-      ]},
-    { "id": 8,
-      "draw_name": "El Gordo de la Primitiva\t", #tabulador why??
-      "jackpot": "10.000.000 €",
-      "prize_distributed": "10.000.000 €",
-      "date_time": "02/12/2014",
-      "round": "",
-      "priority": "3",
-      "available": true,
-      "game": {
-        "id": 5,
-        "game_name": "Gordo",
-        "minimum_bet": "2.0 €",
-        "hours_before_closing_draw": "4",
-        "created_at": "02/12/2014",
-        "updated_at": "02/12/2014"
-      },
-      "week": "",
-      "tuesday_active": true,
-      "original_draw_date": "02/12/2014",
-      "time_left": "0 minutos"
     }
   ]
 }

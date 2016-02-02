@@ -32,6 +32,8 @@ gem 'normalize-rails'
 
 gem 'skeleton-rails'
 
+gem 'mechanize'
+
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
   gem 'byebug'
