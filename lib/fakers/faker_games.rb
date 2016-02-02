@@ -15,10 +15,16 @@ private
 #aunque casi toda la info está disponible en la misma url(actualmente),
 #es preferible para el mantenimiento separarla en distintos métodos y llamadas
 
+#working in connect with ssl certification. problem is not a client ca_certificate
+#ex +'/BEGIN CERTIFICATE/,/END CERTIFICATE/p' <(echo | openssl s_client -showcerts -connect juegos.loteriasyapuestas.es:443) -scq > file.crt
+
   def euromillones
-    page = agent.get('http://www.loteriasyapuestas.es')
-    logo = page.search("#emilImageLink img")[0].attr('src')
-    jackpot = page.search("#jackpotSpanEMIL")[0].text
+    page_logo = agent.get('http://www.selae.es/es/web-corporativa/comunicacion/identidad-corporativa')
+    logo_src = page_logo.search("a[title='Euromillones']")[0].attr('href')
+    page_info = agent.get('http://www.loteriasyapuestas.es/es/euromillones')
+    jackpot_srt = page.search("div.bote")[0].text.delete("\t")
+    #date_game = sorteos martes y jueves
+    #hora_límite 
   end
 
 end
