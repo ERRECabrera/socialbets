@@ -1,16 +1,32 @@
 require 'mechanize'
 require 'pry'
 
+#working..
+#original   with euromillones, la-primitiva, gordo-primitiva, bonoloto
+#redefinded with loteria-nacional
+
 class Game
 
-  attr_reader :logo_src, :jackpot_srt, :date_game_str, :time_left
+  attr_reader :game, :logo_src, :jackpot_str, :jackpot_int, :date_game, :date_game_str, :time_game_utc, :time_limit_utc, :time_left, :price_bet
+  attr_accessor :priority
 
-  def initialize(game="",lang="es",zone_time_fix)
+  def initialize(game,lang,zone_time_fix)
+
+    #vars defined by subclass game
     #valids name's games:
     #euromillones, la-primitiva, gordo-primitiva, bonoloto, loteria-nacional, la-quiniela
     @game = game
-    @lang = lang
     @zone_time_fix = zone_time_fix
+    #euromillones: 19.30, primitiva: 20.15, gordo: 20.00, bonoloto: 20.00, loteria-nacional: [jueves: 19.30, saturday: 11.30]
+    @time_limit_utc = nil
+    #euromillones[2,5], primitiva[4,6], gordo[0](special: date_bet is 6), bonoloto(1..6).to_a, loteria-nacional[4,6]
+    @wday_games = nil
+    #euromillones 2, primitiva 1, gordo 1.5, bonoloto 1, loteria-nacional [thursday: 3, saturday: 6, special: 15 // take with mechanize]
+    @price_bet = nil
+    
+    @lang = lang
+
+    #constants
     @day_names = {
       :en => Date::DAYNAMES,
       :es => %w{Domingo Lunes Martes Miércoles Jueves Viernes Sábado}
@@ -19,23 +35,25 @@ class Game
       :en => Date::MONTHNAMES,
       :es => %w{nil Enero Febrero Marzo Abril Mayo Junio Julio Agosto Septiembre Octubre Noviembre Diciembre}
     }
+
+    #mechanize vars
     @agent = Mechanize.new
     @logo_url = 'http://www.selae.es/es/web-corporativa/comunicacion/identidad-corporativa'
     @info_url = 'http://www.loteriasyapuestas.es/es/' + game
+    @logo_src = 'http://www.selae.es'
+    @page_info = nil
+    @jackpot_int = nil
+    @jackpot_str = nil
+
+    #calculate vars
     @date_game = nil
     @time_game_utc = nil
-    @time_limit_utc = {hour: 20, min: 00}
-    #euromillones: 19.30, primitiva: 20.15, gordo: 20.00, bonoloto: 20.00, loteria-nacional: [jueves: 19.30, saturday: 11.30]
-    @wday_games = [4,6] #monday1..7sunday
-    #euromillones[2,5], primitiva[4,6], gordo[0](special: date_bet is 6), bonoloto(1..6).to_a, loteria-nacional[4,6]
-    @price_bet = 2
-    #euromillones 2, primitiva 1, gordo 1.5, bonoloto 1, loteria-nacional [thursday: 3, saturday: 6, special: 15 /take mechanize]
-    @logo_src = 'http://www.selae.es'
-    @jackpot_srt = nil
     @date_game_str = nil
     @time_left = nil
-    run
-    binding.pry
+
+    #to setter by external class
+    @priority = nil
+    
   end
 
   def run
@@ -43,8 +61,15 @@ class Game
     set_dates_attributes
   end
 
+private
+
   def mechanize
     get_img_src
+    get_info
+  end
+
+  def get_info
+    @page_info = @agent.get(@info_url)
     get_jackpot_src
   end
 
@@ -62,30 +87,23 @@ class Game
   end
 
   def get_jackpot_src
-    page_info = @agent.get(@info_url)
-    @jackpot_srt = page_info.search("div.bote")[0].text.delete("\t")
+    jackpot_text_all = @page_info.search("div.listado")[0].search('div.bote')[0]
+    @jackpot_str = jackpot_text_all ? jackpot_text_all.text.delete("\t") : ""
+    @jackpot_int = split_html_text_to_i('jackpot',@jackpot_str)
+  end
 
-=begin
-    if @game == 'loteria-nacional'
-      #url = http://www.loteriasyapuestas.es/es/buscador?gameId=09&type=nextDraws
-      title_name = page_info.search("div.noCelebrados")[0].search('div.cuerpoRegionSup p.negrita')[0].text
-
-      price_text_all = page_info.search("div.noCelebrados")[0].search('div.cuerpoRegionIzq p')[0].text
-      price_text_all_to_arr = price_text_all.split(':')
-      price_text_with_euros = price_text_all_to_arr[1]
-      price_text_with_euros_to_arr = price_text_with_euros.split(' ')
-      price_number_text = price_text_to_arr[0]
-      price_chars_arr = price_number_text.split("")
-      price_chars_arr.shift
-      price = price_chars_arr.join.to_i
-      @price_bet = price
-      
-      jackpot_html = page_info.search("div.noCelebrados")[0].search('div.bote')[0]
-      @jackpot_srt = jackpot_html ? jackpot_html.text : ""
-
-      #method add_ticket_number + amount arr
+  def split_html_text_to_i(var,html_text_all)
+    html_text_all_to_arr = html_text_all.split(':')
+    html_text_with_euro_sym = html_text_all_to_arr[1]
+    html_text_with_euro_sym_to_arr = html_text_with_euro_sym.split(' ')
+    html_text_number = html_text_with_euro_sym_to_arr[0]
+    html_numbers_arr = html_text_number.split('')
+    html_numbers_arr.shift if html_text_number[0].to_i == 0    
+    if  var == 'jackpot'
+      html_text_number = html_numbers_arr.join
+      html_numbers_arr = html_text_number.split('.')
     end
-=end
+    var = html_numbers_arr.join.to_i
   end
 
   def set_dates_attributes
@@ -99,6 +117,7 @@ class Game
     week_day = week_day >= 7 ? week_day - 7 : week_day
     if @wday_games.include?(week_day)
       date = Date.today + fix_days
+      set_time_limit if !@time_limit_utc
       #fix_days and this code fixs date_game when the game is closed
       date = Time.now > Time.utc(date.year, date.mon, date.mday, @time_limit_utc[:hour], @time_limit_utc[:min]).getlocal ? set_date_game(1) : date
       return date
@@ -106,6 +125,10 @@ class Game
       fix_days += 1
       set_date_game(fix_days)
     end
+  end
+
+  def set_time_limit
+    #defined by loteria-nacional
   end
 
   def date_to_string
@@ -157,5 +180,3 @@ class Game
   end
 
 end
-
-euro = Game.new('la-primitiva','es',1)
