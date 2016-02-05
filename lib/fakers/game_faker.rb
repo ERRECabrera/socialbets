@@ -3,7 +3,7 @@ require 'pry'
 
 #working..
 #original   with euromillones, la-primitiva, gordo-primitiva, bonoloto
-#redefinded with loteria-nacional
+#redefined with loteria-nacional
 
 class Game
 
@@ -151,32 +151,52 @@ private
 
   def calculate_months_weeks_days_hours_or_minutes_remaining
     time_game_fixed = @time_game_utc + (@zone_time_fix*60*60)
+    return calculate_months_or_below_time_remaining(time_game_fixed)
+  end
+
+  def calculate_months_or_below_time_remaining(time_game_fixed)
     months_remaining = time_game_fixed.mon - Time.now.mon
     if months_remaining == 0
-      weeks_remaining = time_game_fixed.to_date.cweek - Time.now.to_date.cweek
-      if weeks_remaining == 0 
-        days_remaining = time_game_fixed.day - Time.now.day
-        if days_remaining == 0
-          hours_remaining = time_game_fixed.hour - Time.now.hour
-          if hours_remaining == 0
-            mins_remaining = time_game_fixed.min - Time.now.min
-            return {:mins => mins_remaining}
-          else
-            return {:hours => hours_remaining}
-          end
-        else
-          #fix case 'gordo' day_bet is saturday and day_game is sunday
-          days_remaining -= 1 if @game == 'gordo-primitiva'
-          return {:days => days_remaining}
-        end
-      else
-        #not return weeks = days/7, return nº changes of weeks
-        return {:weeks => weeks_remaining}
-      end
+      return calculate_weeks_or_below_time_remaining(time_game_fixed)
     else
       #return the bet's month
       return {:month => "#{@month_names[@lang][time_game_fixed.mon]}"}
     end
+  end
+
+  def calculate_weeks_or_below_time_remaining(time_game_fixed)
+    weeks_remaining = time_game_fixed.to_date.cweek - Time.now.to_date.cweek
+    if weeks_remaining == 0 
+      return calculate_days_or_below_time_remaining(time_game_fixed)
+    else
+      #not return weeks = days/7, return nº changes of weeks
+      return {:weeks => weeks_remaining}
+    end
+  end  
+
+  def calculate_days_or_below_time_remaining(time_game_fixed)
+    days_remaining = time_game_fixed.day - Time.now.day
+    if days_remaining == 0
+      return calculate_hours_or_mins_remaining(time_game_fixed)
+    else
+      #fix case 'gordo' day_bet is saturday and day_game is sunday
+      days_remaining -= 1 if @game == 'gordo-primitiva'
+      return {:days => days_remaining}
+    end
+  end
+
+  def calculate_hours_or_mins_remaining(time_game_fixed)
+    hours_remaining = time_game_fixed.hour - Time.now.hour
+    if hours_remaining == 0
+      return calculate_mins_remaining(time_game_fixed)
+    else
+      return {:hours => hours_remaining}
+    end
+  end
+
+  def calculate_mins_remaining(time_game_fixed)
+    mins_remaining = time_game_fixed.min - Time.now.min
+    return {:mins => mins_remaining}
   end
 
 end
