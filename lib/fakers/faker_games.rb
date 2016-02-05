@@ -35,7 +35,7 @@ objects_attr = {
   get "jackpot": "00.000.000 €",
   get "date_time": "14/08/2015", #change to Date_object? this is date_game
   get "round": "", #possible inheritance jornada if quiniela game
-  "priority": 1, #order_by priority
+  "priority": 1, #order_by priority add logarith price + time_game
   "available": true,
   "game": { #info game static
     "id": 1,

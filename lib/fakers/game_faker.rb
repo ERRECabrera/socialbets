@@ -13,7 +13,7 @@ class Game
     @zone_time_fix = zone_time_fix
     @day_names = {
       :en => Date::DAYNAMES,
-      :es => %w{Domingo Lunes Martes Miércoles Jueves Viernes}
+      :es => %w{Domingo Lunes Martes Miércoles Jueves Viernes Sábado}
     }
     @month_names = {
       :en => Date::MONTHNAMES,
@@ -25,9 +25,11 @@ class Game
     @date_game = nil
     @time_game_utc = nil
     @time_limit_utc = {hour: 20, min: 00}
-    #euromillones: 19.30, primitiva: 20.15, gordo: 20.00, bonoloto: 20.00
-    @wday_games = [0] #monday1..7sunday
-    #euromillones[2,5], primitiva[4,6], gordo[0](special: date_bet is 6), bonoloto(1..6).to_a
+    #euromillones: 19.30, primitiva: 20.15, gordo: 20.00, bonoloto: 20.00, loteria-nacional: [jueves: 19.30, saturday: 11.30]
+    @wday_games = [4,6] #monday1..7sunday
+    #euromillones[2,5], primitiva[4,6], gordo[0](special: date_bet is 6), bonoloto(1..6).to_a, loteria-nacional[4,6]
+    @price_bet = 2
+    #euromillones 2, primitiva 1, gordo 1.5, bonoloto 1, loteria-nacional [thursday: 3, saturday: 6, special: 15 /take mechanize]
     @logo_src = 'http://www.selae.es'
     @jackpot_srt = nil
     @date_game_str = nil
@@ -62,6 +64,28 @@ class Game
   def get_jackpot_src
     page_info = @agent.get(@info_url)
     @jackpot_srt = page_info.search("div.bote")[0].text.delete("\t")
+
+=begin
+    if @game == 'loteria-nacional'
+      #url = http://www.loteriasyapuestas.es/es/buscador?gameId=09&type=nextDraws
+      title_name = page_info.search("div.noCelebrados")[0].search('div.cuerpoRegionSup p.negrita')[0].text
+
+      price_text_all = page_info.search("div.noCelebrados")[0].search('div.cuerpoRegionIzq p')[0].text
+      price_text_all_to_arr = price_text_all.split(':')
+      price_text_with_euros = price_text_all_to_arr[1]
+      price_text_with_euros_to_arr = price_text_with_euros.split(' ')
+      price_number_text = price_text_to_arr[0]
+      price_chars_arr = price_number_text.split("")
+      price_chars_arr.shift
+      price = price_chars_arr.join.to_i
+      @price_bet = price
+      
+      jackpot_html = page_info.search("div.noCelebrados")[0].search('div.bote')[0]
+      @jackpot_srt = jackpot_html ? jackpot_html.text : ""
+
+      #method add_ticket_number + amount arr
+    end
+=end
   end
 
   def set_dates_attributes
@@ -87,10 +111,10 @@ class Game
   def date_to_string
     date_str = "#{@day_names[@lang.to_sym][@date_game.wday]}, "
     case @lang
-    when 'es'
-      date_str += "#{@date_game.mday} de #{@month_names[@lang.to_sym][@date_game.mon]} de"
-    when 'en'
-      date_str += "#{@month_names[@lang.to_sym][@date_game.mon]} #{@date_game.mday}rd,"
+      when 'es'
+        date_str += "#{@date_game.mday} de #{@month_names[@lang.to_sym][@date_game.mon]} de"
+      when 'en'
+        date_str += "#{@month_names[@lang.to_sym][@date_game.mon]} #{@date_game.mday},"
     end
     date_str += " #{@date_game.year}"
     return date_str
@@ -134,4 +158,4 @@ class Game
 
 end
 
-euro = Game.new('gordo-primitiva','es',1)
+euro = Game.new('la-primitiva','es',1)
