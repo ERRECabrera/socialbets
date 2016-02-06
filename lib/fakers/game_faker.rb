@@ -1,11 +1,13 @@
+require_relative 'languages.rb'
 require 'mechanize'
 require 'pry'
 
 #working..
 #original   with euromillones, la-primitiva, gordo-primitiva, bonoloto
-#redefined with loteria-nacional
+#redefined  with loteria-nacional
 
 class Game
+  include Languages
 
   attr_reader :game, :logo_src, :jackpot_str, :jackpot_int, :date_game, :date_game_str, :time_game_utc, :time_limit_utc, :time_left, :price_bet
   attr_accessor :priority
@@ -23,18 +25,10 @@ class Game
     @wday_games = nil
     #euromillones 2, primitiva 1, gordo 1.5, bonoloto 1, loteria-nacional [thursday: 3, saturday: 6, special: 15 // take with mechanize]
     @price_bet = nil
+    #the game quiniela is not available when there is not soccer ligue
+    @available = true
     
     @lang = lang
-
-    #constants
-    @day_names = {
-      :en => Date::DAYNAMES,
-      :es => %w{Domingo Lunes Martes Miércoles Jueves Viernes Sábado}
-    }
-    @month_names = {
-      :en => Date::MONTHNAMES,
-      :es => %w{nil Enero Febrero Marzo Abril Mayo Junio Julio Agosto Septiembre Octubre Noviembre Diciembre}
-    }
 
     #mechanize vars
     @agent = Mechanize.new
@@ -132,12 +126,12 @@ private
   end
 
   def date_to_string
-    date_str = "#{@day_names[@lang.to_sym][@date_game.wday]}, "
+    date_str = "#{Languages::DAY_NAMES[@lang.to_sym][@date_game.wday]}, "
     case @lang
       when 'es'
-        date_str += "#{@date_game.mday} de #{@month_names[@lang.to_sym][@date_game.mon]} de"
+        date_str += "#{@date_game.mday} de #{Languages::MONTH_NAMES[@lang.to_sym][@date_game.mon]} de"
       when 'en'
-        date_str += "#{@month_names[@lang.to_sym][@date_game.mon]} #{@date_game.mday},"
+        date_str += "#{Languages::MONTH_NAMES[@lang.to_sym][@date_game.mon]} #{@date_game.mday},"
     end
     date_str += " #{@date_game.year}"
     return date_str
@@ -160,7 +154,7 @@ private
       return calculate_weeks_or_below_time_remaining(time_game_fixed)
     else
       #return the bet's month
-      return {:month => "#{@month_names[@lang][time_game_fixed.mon]}"}
+      return {:month => "#{Languages::MONTH_NAMES[@lang.to_sym][time_game_fixed.mon]}"}
     end
   end
 
@@ -170,7 +164,7 @@ private
       return calculate_days_or_below_time_remaining(time_game_fixed)
     else
       #not return weeks = days/7, return nº changes of weeks
-      return {:weeks => weeks_remaining}
+      return weeks_remaining == 1 ? {:weeks => Languages::MESSAGE[:weeks_remaining][@lang.to_sym]} : {:weeks => weeks_remaining}
     end
   end  
 
@@ -181,7 +175,7 @@ private
     else
       #fix case 'gordo' day_bet is saturday and day_game is sunday
       days_remaining -= 1 if @game == 'gordo-primitiva'
-      return {:days => days_remaining}
+      return {:days => days_remaining, :name => "#{Languages::DAY_NAMES[@lang.to_sym][@date_game.wday]}"}
     end
   end
 
