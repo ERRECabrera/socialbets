@@ -1,34 +1,86 @@
+require_relative 'bonoloto_fake.rb'
+require_relative 'euromillones_fake.rb'
+require_relative 'gordo_fake.rb'
+require_relative 'loteria_fake.rb'
+require_relative 'primitiva_fake.rb'
+require_relative 'quiniela_fake.rb'
+
+require 'pry'
+
 class Faker_games
 
-  attr_reader :euro, :quini, :primi, :loto, :gordo
+  attr_reader :games
 
-  def initialize
-    @euro = euromillones
-    @quini = nil
-    @primi = nil
-    @loto = nil
-    @gordo = nil
+  def initialize(lang='es',zone_fix=1)
+    @lang = lang
+    @zone_fix = zone_fix
+    @games = []
+    add_games
+    sort_by_algorithm_priority
   end
 
-#private
-#aunque casi toda la info está disponible en la misma url(actualmente),
-#es preferible para el mantenimiento separarla en distintos métodos y llamadas
+  def add_games
+    games = [
+      Euromillones.new(@lang,@zone_fix),
+      Quiniela.new(@lang,@zone_fix),
+      Primitiva.new(@lang,@zone_fix),
+      Loteria.new(@lang,@zone_fix),
+      Gordo.new(@lang,@zone_fix)
+    ]
+    games.each { |game| @games.push(game) if game.available }
+  end
 
-#working in connect with ssl certification. problem: is not a client ca_certificate
-#ex +'/BEGIN CERTIFICATE/,/END CERTIFICATE/p' <(echo | openssl s_client -showcerts -connect juegos.loteriasyapuestas.es:443) -scq > file.crt
+  def sort_by_algorithm_priority
+    pointer_games
+    set_priority
+    sort_by_priority
+  end
+
+private
+
+
+
+  def pointer_games
+    point_by_time
+    point_by_price_bet
+    point_by_jackpot    
+  end
+
+  def set_priority
+    @games.sort_by! {|game| game.points}
+    @games.reverse!
+    @games.each_with_index {|game,index| game.priority = index + 1}
+  end
+
+  def sort_by_priority
+    @games.sort_by! {|game| game.priority}
+  end
+
+  def point_by_time
+    @games.sort_by! {|game| game.time_game_utc}
+    set_points_priority_game
+  end
+
+  def point_by_price_bet
+    @games.sort_by! {|game| game.price_bet}
+    @games.reverse!
+    set_points_priority_game
+  end
+
+  def point_by_jackpot
+    @games.sort_by! {|game| game.jackpot_int}
+    @games.reverse!
+    set_points_priority_game
+  end
+
+  def set_points_priority_game
+    @games.each_with_index {|game,index| game.points += @games.size - index}
+  end
 
 end
 
 =begin
-
-games = [
-  'Euromillones',
-  "Quiniela",
-  "Primitiva",
-  "Lotería Navidad",
-  "El Gordo de la Primitiva"
-]
-
+REFERNCE_OBJ
 objects_attr = {
   "id": 0,
   get "draw_name": "Name", #draw_name.es or en..
@@ -56,5 +108,4 @@ objects_attr = {
     }
   ]
 }
-
 =end

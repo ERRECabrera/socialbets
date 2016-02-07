@@ -7,18 +7,21 @@ class Loteria < Game
   def initialize(lang="es",zone_time_fix=1)
     super('loteria-nacional',lang,zone_time_fix)
 
+    #mechanize vars
     #redefine if not work with default url  
     #@logo_url = '' work with .get_img_src
     @info_url = 'http://www.loteriasyapuestas.es/es/buscador?gameId=09&type=nextDraws'
     #@logo_src = '' work with .get_img_src
-    
-    @time_limit_utc = nil
+    #loteria-nacional [thursday: 3, saturday: 6, special: ? /take mechanize]
+    @price_bet = nil #work with get_price_bet
+    @title_name = nil #work with get_title_name
+
+    #var set
+    #@time_limit_utc defined by set_time_limit
     @wday_games = [4,6] #sunday0..6saturday
-    @price_bet = nil # loteria-nacional [thursday: 3, saturday: 6, special: ? /take mechanize]
 
     #new_var
-    @title_name = nil
-    @tickets_numbers = []
+    @tickets_numbers = [] #work with add_random_ticket_numbers
 
     run
   end
@@ -39,10 +42,10 @@ private
     get_price_bet
   end
 
-  def get_jackpot_src
+  def get_jackpot_str
     jackpot_text_all = @page_info.search("div.noCelebrados")[2].search('div.bote')[0]
     @jackpot_str = jackpot_text_all ? jackpot_text_all.text : nil
-    @jackpot_int = @jackpot_str ? split_html_text_to_i('jackpot',@jackpot_str) : nil
+    @jackpot_int = @jackpot_str ? split_html_text_to_i('jackpot',@jackpot_str) : 0
   end
 
   def get_title_name
@@ -54,9 +57,9 @@ private
     @price_bet = split_html_text_to_i('price',price_text_all)
   end
 
-  def set_time_limit
+  def set_time_limit(date)
     #loteria-nacional: [thursday: 19.30, saturday: 11.30]
-    @time_limit_utc = Date.today.wday == @wday_games[0] ? {hour: 19, min: 30} : {hour: 11, min: 30}
+    @time_limit_utc = date.wday == @wday_games[0] ? {hour: 19, min: 30} : {hour: 11, min: 30}
   end
 
   def add_random_ticket_numbers
@@ -66,6 +69,3 @@ private
   end
 
 end
-
-loto = Loteria.new
-binding.pry
