@@ -1,9 +1,8 @@
 require_relative 'languages.rb'
-require 'mechanize'
 
 #working..
 #original   with euromillones, la-primitiva, gordo-primitiva, bonoloto
-#redefined  with loteria-nacional
+#redefined  with loteria-nacional, quiniela
 
 class Game
   include Languages

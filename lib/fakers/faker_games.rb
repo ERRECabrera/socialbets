@@ -5,8 +5,6 @@ require_relative 'loteria_fake.rb'
 require_relative 'primitiva_fake.rb'
 require_relative 'quiniela_fake.rb'
 
-require 'pry'
-
 class Faker_games
 
   attr_reader :games
@@ -38,12 +36,19 @@ class Faker_games
 
 private
 
-
-
   def pointer_games
+    better_to_user
+    better_to_socialbets      
+  end
+
+  def better_to_user
+    point_by_jackpot
+    point_by_price_bet('cheap')
+  end
+
+  def better_to_socialbets
     point_by_time
-    point_by_price_bet
-    point_by_jackpot    
+    point_by_price_bet('expensive')
   end
 
   def set_priority
@@ -61,9 +66,9 @@ private
     set_points_priority_game
   end
 
-  def point_by_price_bet
+  def point_by_price_bet(price)
     @games.sort_by! {|game| game.price_bet}
-    @games.reverse!
+    @games.reverse! if price == 'expensive'
     set_points_priority_game
   end
 
