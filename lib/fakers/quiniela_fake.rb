@@ -1,4 +1,4 @@
-require_relative 'game_faker.rb'
+require_relative 'game_fake.rb'
 
 class Quiniela < Game
 
@@ -68,7 +68,7 @@ private
     (0..14).each do |index|
       match = {
         "Match_#{index+1}": "#{teams_hash[:local][index]} vs #{teams_hash[:visitor][index]}",
-        datetime_play: Time.parse([dates_arr[index],times_arr[index]].join(' ')).to_datetime
+        time_play_utc: Time.parse([dates_arr[index],times_arr[index]].join(' ')).utc
       }
       @matches << match
     end
@@ -114,9 +114,9 @@ private
       special: 2 #pleno al 15 
     }
     teams[:local] = get_datas_from_table_matches(web,match[:normal],index[:normal])
-    teams[:local].push(get_datas_from_table_matches(web,match[:special],index[:normal]))
+    teams[:local].push(get_datas_from_table_matches(web,match[:special],index[:normal])[0].sub(' ',''))
     teams[:visitor] = get_datas_from_table_matches(web,match[:normal],index[:special])
-    teams[:visitor].push(get_datas_from_table_matches(web,match[:special],index[:special]))
+    teams[:visitor].push(get_datas_from_table_matches(web,match[:special],index[:special])[0])
     return teams
   end
 

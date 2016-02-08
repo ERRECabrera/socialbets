@@ -1,4 +1,4 @@
-require_relative 'game_faker.rb'
+require_relative 'game_fake.rb'
 
 class Gordo < Game
 

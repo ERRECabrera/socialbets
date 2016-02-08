@@ -1,5 +1,3 @@
-require 'date'
-
 module Languages
 
   GAME_NAMES = {

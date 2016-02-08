@@ -3,7 +3,8 @@ class FakersController < ApplicationController
 
   # /games
   def games
-    Faker_games.new
+    fake_request = Faker_games.new
+    render :json => fake_request.games.to_json
   end
 
 end

@@ -15,6 +15,7 @@ class Faker_games
     @games = []
     add_games
     sort_by_algorithm_priority
+    @games = self.to_hash
   end
 
   def add_games
@@ -32,6 +33,37 @@ class Faker_games
     pointer_games
     set_priority
     sort_by_priority
+  end
+
+  def to_hash
+    games_hash = []
+    @games.each_with_index do |game,index|
+      games_hash << {
+        draw_name: game.draw_name,
+        logo_src: game.logo_src,
+        jackpot_int: game.jackpot_int,
+        jackpot_str: game.jackpot_str,
+        date_game: game.date_game,
+        date_game_str: game.date_game_str,
+        time_game_utc: game.time_game_utc,
+        time_left: game.time_left,
+        price_bet: game.price_bet
+      }
+      if game.game == 'loteria-nacional'
+        games_hash[-1].merge!(
+          title_name: game.title_name,
+          tickets_numbers: game.tickets_numbers
+        )
+      end
+      if game.game == 'la-quiniela'
+        games_hash[-1].merge!(
+          round: game.round,
+          round_str: game.round_str,
+          matches: game.matches
+        )
+      end      
+    end
+    return games_hash
   end
 
 private
@@ -83,34 +115,3 @@ private
   end
 
 end
-
-=begin
-REFERNCE_OBJ
-objects_attr = {
-  "id": 0,
-  get "draw_name": "Name", #draw_name.es or en..
-  get "jackpot": "00.000.000 €",
-  get "date_time": "14/08/2015", #change to Date_object? this is date_game
-  get "round": "", #possible inheritance jornada if quiniela game
-  "priority": 1, #order_by priority add logarith price + time_game + size_bote
-  "available": true,
-  "game": { #info game static
-    "id": 1,
-    "game_name": "Euromillions",
-    "minimum_bet": 2.0, #change to_f
-  },
-  get "matches": [ #if game == quiniela
-    { "id": 1,
-      "match_1": "Athletic-Barcelona",
-      "draw_id": 7, #possible data-id_js
-    }
-  ],
-  "numbers": [ #select where amount > 0
-    { "id": 3,
-      "ticket_number": 1203,
-      "amount": 0, #implementar websocket o llamadas ajax cada cierto tiempo
-      "draw_id": 2
-    }
-  ]
-}
-=end

@@ -7,7 +7,7 @@ require_relative 'languages.rb'
 class Game
   include Languages
 
-  attr_reader :available, :draw_name, :logo_src, :jackpot_str, :jackpot_int, :date_game, :date_game_str, :time_game_utc, :time_limit_utc, :time_left, :price_bet
+  attr_reader :available, :draw_name, :game, :logo_src, :jackpot_str, :jackpot_int, :date_game, :date_game_str, :time_game_utc, :time_limit_utc, :time_left, :price_bet
   attr_accessor :priority, :points
 
   def initialize(game,lang,zone_time_fix)

@@ -1,3 +1,5 @@
+require_relative 'game_fake.rb'
+
 class Euromillones < Game
 
   def initialize(lang="es",zone_time_fix=1)
